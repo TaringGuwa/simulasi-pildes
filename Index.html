@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pilkades Digital</title>
+<style>
+:root{--bg:#f3f1e8;--ink:#1d2b24;--mut:#5d6b63;--card:#fff;--line:#cfd6c8;--green:#1f6b4a;--red:#b3261e;--blue:#1d4f91;--dis:#d9ddd5;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14201a;--ink:#eaf0e8;--mut:#9fb0a5;--card:#1d2d25;--line:#33473c;--green:#4cc38a;--red:#ff8a80;--blue:#7fb2f0;--dis:#2a3a31}}
+:root[data-theme="dark"]{--bg:#14201a;--ink:#eaf0e8;--mut:#9fb0a5;--card:#1d2d25;--line:#33473c;--green:#4cc38a;--red:#ff8a80;--blue:#7fb2f0;--dis:#2a3a31}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;display:flex;justify-content:center}
+main{width:100%;max-width:520px;padding:24px 18px 40px;min-height:100vh;display:flex;flex-direction:column}
+section{display:none;flex:1;flex-direction:column}
+section.on{display:flex}
+h1{font-family:Georgia,"Times New Roman",serif;font-size:2.2rem;line-height:1.15;margin:0 0 10px}
+h2{font-family:Georgia,serif;font-size:1.5rem;margin:0 0 6px}
+p{color:var(--mut);line-height:1.5;margin:0 0 16px}
+button{font:inherit;cursor:pointer;border:2px solid var(--ink);background:var(--card);color:var(--ink);border-radius:10px;padding:14px 18px;font-weight:700}
+button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.big{background:var(--green);border-color:var(--green);color:#fff;font-size:1.2rem;padding:18px}
+:root[data-theme="dark"] .big{color:#0b1b13}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .big{color:#0b1b13}}
+.center{flex:1;display:flex;flex-direction:column;justify-content:center}
+.cam{position:relative;border-radius:14px;overflow:hidden;background:#000;aspect-ratio:1/1;border:2px solid var(--ink)}
+.cam video{width:100%;height:100%;object-fit:cover}
+.cam .frame{position:absolute;inset:18%;border:3px solid #7dffb5;border-radius:14px;box-shadow:0 0 0 999px rgba(0,0,0,.35)}
+#camMsg{margin-top:12px;min-height:1.5em}
+.cands{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
+.cand{display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 8px;text-align:center}
+.cand svg{width:96px;height:96px;border-radius:50%}
+.cand small{color:var(--mut);font-weight:400}
+.cand.sel{border-color:var(--green);background:color-mix(in srgb,var(--green) 14%,var(--card));box-shadow:0 0 0 3px var(--green)}
+.cand:disabled{opacity:.55;cursor:default}
+#btnConfirm:disabled{background:var(--dis);border-color:var(--dis);color:var(--mut);cursor:not-allowed}
+.photo{display:flex;flex-direction:column;align-items:center;margin:10px 0 20px}
+.photo svg{width:200px;height:200px;border-radius:16px;border:3px solid var(--ink)}
+.row{display:grid;gap:10px}
+.ok{background:color-mix(in srgb,var(--green) 18%,var(--card));border:2px solid var(--green);border-radius:12px;padding:16px;font-weight:700;text-align:center;margin:6px 0 4px}
+.hide{display:none!important}
+input{font:inherit;padding:12px;border:2px solid var(--ink);border-radius:10px;background:var(--card);color:var(--ink);width:100%}
+.trow{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)}
+.qrc{display:flex;flex-wrap:wrap;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.qrc>div:first-child{background:#fff;padding:22px;border-radius:8px;flex:none}
+.qrc code{font-size:.75rem;word-break:break-all;color:var(--mut)}
+</style>
+</head>
+<body>
+<main>
+  <!-- 1. Mulai -->
+  <section id="s-start" class="on">
+    <div class="center">
+      <h1>Pemilihan Kepala Desa</h1>
+      <p>Simulasi pemilihan digital. Siapkan kartu QR Anda, lalu tekan mulai.</p>
+      <button class="big" id="btnStart">Mulai</button>
+      <button id="btnAdmin" style="margin-top:14px;background:transparent;border-color:var(--line);color:var(--mut)">Panel panitia</button>
+    </div>
+  </section>
+
+  <!-- 2. Scan -->
+  <section id="s-scan">
+    <h2>Scan QR Code</h2>
+    <p>Arahkan kamera ke QR code pada kartu pemilih.</p>
+    <div class="cam" id="camBox"><video id="video" playsinline muted></video><div class="frame"></div></div>
+    <div id="prevBox" class="hide photo"><img id="prevImg" alt="Foto QR" style="max-width:100%;max-height:50vh;border:3px solid var(--ink);border-radius:14px"></div>
+    <p id="camMsg">Mengaktifkan kamera…</p>
+    <div class="row">
+      
+      <button class="big hide" id="btnScanNow">Scan sekarang</button>
+      <button class="big" id="btnPhoto">Ambil foto QR</button>
+      <input type="file" id="photoIn" accept="image/*" capture="environment" class="hide">
+      <button id="btnScanBack">Batal</button>
+    </div>
+  </section>
+
+  <!-- 3. Pilih -->
+  <section id="s-vote">
+    <h2>Pilih kandidat</h2>
+    <p>Sentuh salah satu kandidat, lalu tekan konfirmasi.</p>
+    <div class="cands">
+      <button class="cand" id="c1"><span class="av"></span><b>Budi Santoso</b><small>Kandidat 1</small></button>
+      <button class="cand" id="c2"><span class="av"></span><b>Siti Rahayu</b><small>Kandidat 2</small></button>
+    </div>
+    <button class="big" id="btnConfirm" disabled>Konfirmasi</button>
+    <div id="done" class="hide">
+      <div class="ok">Selamat kamu berhasil memilih</div>
+      <button id="btnFinish" style="width:100%;margin-top:10px">Selesai</button>
+    </div>
+  </section>
+
+  <!-- 4. Konfirmasi pilihan -->
+  <section id="s-check">
+    <h2>Konfirmasi pilihan</h2>
+    <p>Apakah Anda yakin memilih kandidat ini?</p>
+    <div class="photo"><span id="chosenPhoto"></span><h2 id="chosenName" style="margin-top:14px"></h2></div>
+    <div class="row">
+      <button class="big" id="btnYes">Ya, konfirmasi pilihan</button>
+      <button id="btnBack">Kembali</button>
+    </div>
+  </section>
+<section id="s-admin">
+    <h2>Panel panitia</h2>
+    <div id="pinBox"><p>Masukkan PIN panitia.</p><input id="pin" type="password" inputmode="numeric" placeholder="PIN"><button class="big" id="btnPin" style="margin-top:10px;width:100%">Buka</button><p id="pinMsg" style="margin-top:10px;color:var(--red)"></p></div>
+    <div id="adminBox" class="hide">
+      <p>Hasil suara berdasarkan QR code yang sudah dipakai.</p>
+      <div id="tally"></div>
+      <h2 style="margin-top:24px">QR code pemilih</h2>
+      <p>Cetak atau screenshot QR ini. Tiap QR hanya bisa dipakai satu kali.</p>
+      <div id="qrList"></div>
+      <button id="btnReset" style="margin-top:16px;width:100%">Reset semua suara</button>
+    </div>
+    <button id="btnAdminBack" style="margin-top:14px">Kembali</button>
+  </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+(function(){
+  var cands={1:{name:"Budi Santoso",color:"#1f6b4a",hair:"#2b2118",shirt:"#8a5a2b"},
+             2:{name:"Siti Rahayu",color:"#1d4f91",hair:"#1b1b1b",shirt:"#b3261e"}};
+  function avatar(i){var c=cands[i];
+    return '<svg viewBox="0 0 100 100" role="img" aria-label="Foto '+c.name+'"><rect width="100" height="100" fill="'+c.color+'"/><circle cx="50" cy="40" r="19" fill="#e8b98f"/><path d="M30 38c0-14 9-22 20-22s20 8 20 22c-6-8-14-11-20-11s-14 3-20 11z" fill="'+c.hair+'"/><path d="M14 100c2-22 16-34 36-34s34 12 36 34z" fill="'+c.shirt+'"/></svg>';}
+  var $=function(id){return document.getElementById(id)};
+  var secs=["s-start","s-scan","s-vote","s-check","s-admin"];
+  function show(id){secs.forEach(function(s){$(s).classList.toggle("on",s===id)});}
+  $("c1").querySelector(".av").innerHTML=avatar(1);
+  $("c2").querySelector(".av").innerHTML=avatar(2);
+
+  var stream=null,raf=null,picked=null,voted=false;
+  var CODES=["PILKADES-A7K2-91","PILKADES-M3Q8-27","PILKADES-X5T4-63","PILKADES-R9B6-15","PILKADES-L2W7-48"];
+  var PIN="1234",KEY="pilkades_votes_v1",votes={},currentCode=null;
+  try{votes=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){votes={}}
+  function save(){try{localStorage.setItem(KEY,JSON.stringify(votes))}catch(e){}}
+  function bad(m){$("camMsg").textContent=m;$("camMsg").style.color="var(--red)";}
+  function handleCode(raw){
+    var d=CODES.filter(function(c){return c.toUpperCase()===String(raw).replace(/\s/g,"").toUpperCase();})[0];
+    if(!d){bad("QR terbaca, tetapi isinya tidak ada di daftar: \""+String(raw).slice(0,40)+"\". Pakai QR dari Panel panitia.");return false;}
+    if(votes[d]){bad("QR ini sudah dipakai untuk memilih.");return false;}
+    currentCode=d;goVote();return true;}
+  function recordVote(){if(currentCode){votes[currentCode]=picked;save();}}
+  function renderAdmin(){
+    var n1=0,n2=0,used=0;
+    CODES.forEach(function(c){if(votes[c]){used++;if(votes[c]===1)n1++;else n2++;}});
+    $("tally").innerHTML='<div class="trow"><span>'+cands[1].name+'</span><b>'+n1+' suara</b></div><div class="trow"><span>'+cands[2].name+'</span><b>'+n2+' suara</b></div><div class="trow"><span>QR sudah dipakai</span><b>'+used+' dari '+CODES.length+'</b></div>';
+    var h="";
+    CODES.forEach(function(c,i){h+='<div class="qrc"><div id="qr'+i+'"></div><div><b>Pemilih '+(i+1)+'</b><br><small>'+(votes[c]?"Sudah dipakai":"Belum dipakai")+'</small><br><code>'+c+'</code></div></div>';});
+    $("qrList").innerHTML=h;
+    if(window.QRCode)CODES.forEach(function(c,i){new QRCode($("qr"+i),{text:c,width:180,height:180,correctLevel:QRCode.CorrectLevel.M});});
+  }
+
+  function stopCam(){cancelAnimationFrame(raf);if(stream){stream.getTracks().forEach(function(t){t.stop()});stream=null;}}
+  function reset(){picked=null;voted=false;
+    ["c1","c2"].forEach(function(id){$(id).classList.remove("sel");$(id).disabled=false;});
+    $("btnConfirm").disabled=true;$("btnConfirm").classList.remove("hide");$("done").classList.add("hide");}
+  function goVote(){stopCam();reset();show("s-vote");}
+
+  function tick(){
+    var v=$("video");
+    if(v.readyState===v.HAVE_ENOUGH_DATA&&window.jsQR){
+      var cv=tick.cv||(tick.cv=document.createElement("canvas")),w=v.videoWidth,h=v.videoHeight;
+      cv.width=w;cv.height=h;var cx=cv.getContext("2d",{willReadFrequently:true});
+      cx.drawImage(v,0,0,w,h);
+      var r=jsQR(cx.getImageData(0,0,w,h).data,w,h);
+      if(r&&r.data){if(handleCode(r.data.trim()))return;}
+    }
+    raf=requestAnimationFrame(tick);
+  }
+  function startScan(){
+    photoImg=null;showPhoto(false);show("s-scan");$("camMsg").style.color="";$("camMsg").textContent="Mengaktifkan kamera…";
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){$("camMsg").textContent="Kamera langsung tidak tersedia di sini. Tekan Ambil foto QR untuk memindai lewat kamera bawaan HP.";return;}
+    navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false}).then(function(s){
+      stream=s;var v=$("video");v.srcObject=s;v.play();
+      $("camMsg").textContent="Kamera aktif. Mencari QR code…";raf=requestAnimationFrame(tick);
+    }).catch(function(e){$("camMsg").textContent="Kamera langsung diblokir di sini ("+((e&&e.name)||"error")+"). Buka app ini langsung di browser atau dari file yang diunduh.";});
+  }
+
+  function pick(i){if(voted)return;picked=i;
+    $("c1").classList.toggle("sel",i===1);$("c2").classList.toggle("sel",i===2);
+    $("btnConfirm").disabled=false;}
+
+  $("btnStart").onclick=startScan;
+  $("btnScanBack").onclick=function(){stopCam();show("s-start");};
+  $("btnAdmin").onclick=function(){$("pin").value="";$("pinMsg").textContent="";$("pinBox").classList.remove("hide");$("adminBox").classList.add("hide");show("s-admin");};
+  $("btnPin").onclick=function(){if($("pin").value===PIN){$("pinBox").classList.add("hide");$("adminBox").classList.remove("hide");renderAdmin();}else{$("pinMsg").textContent="PIN salah.";}};
+  $("btnAdminBack").onclick=function(){show("s-start");};
+  var rst=false;
+  var photoImg=null,photoUrl=null;
+  function showPhoto(on){
+    $("camBox").classList.toggle("hide",on);$("prevBox").classList.toggle("hide",!on);
+    $("btnScanNow").classList.toggle("hide",!on);
+    $("btnPhoto").textContent=on?"Ambil ulang foto":"Ambil foto QR";
+    $("btnPhoto").classList.toggle("big",!on);
+  }
+  $("btnPhoto").onclick=function(){$("photoIn").click();};
+  $("photoIn").onchange=function(){
+    var f=this.files&&this.files[0];if(!f)return;
+    stopCam();
+    if(photoUrl)URL.revokeObjectURL(photoUrl);
+    photoUrl=URL.createObjectURL(f);
+    var img=new Image();
+    img.onload=function(){photoImg=img;$("prevImg").src=photoUrl;showPhoto(true);$("camMsg").style.color="";$("camMsg").textContent="Foto siap. Tekan Scan sekarang.";};
+    img.onerror=function(){bad("Foto tidak bisa dibaca. Coba ambil foto lagi.");};
+    img.src=photoUrl;this.value="";
+  };
+  function decodePhoto(img){
+    var r=null,sizes=[2000,1200,800,500,350];
+    for(var k=0;k<sizes.length&&!r;k++){
+      var sc=Math.min(1,sizes[k]/Math.max(img.width,img.height)),w=Math.round(img.width*sc),h=Math.round(img.height*sc);
+      var cv=document.createElement("canvas");cv.width=w;cv.height=h;
+      var cx=cv.getContext("2d",{willReadFrequently:true});cx.drawImage(img,0,0,w,h);
+      r=jsQR(cx.getImageData(0,0,w,h).data,w,h);
+    }
+    return r&&r.data?r.data:null;
+  }
+  $("btnScanNow").onclick=function(){
+    if(!photoImg)return;
+    $("camMsg").style.color="";$("camMsg").textContent="Memindai foto…";
+    function done(d){if(d){handleCode(d.trim());}else{bad("QR tidak terbaca di foto ini. Ambil ulang dengan QR lebih dekat dan lebih terang.");}}
+    function viaJs(){if(!window.jsQR){bad("Pembaca QR gagal dimuat. Periksa koneksi internet lalu muat ulang halaman.");return;}done(decodePhoto(photoImg));}
+    if(window.BarcodeDetector){
+      try{new BarcodeDetector({formats:["qr_code"]}).detect(photoImg).then(function(res){if(res&&res.length&&res[0].rawValue)done(res[0].rawValue);else viaJs();}).catch(viaJs);}catch(e){viaJs();}
+    }else{viaJs();}
+  };
+  $("btnReset").onclick=function(){if(!rst){rst=true;$("btnReset").textContent="Tekan lagi untuk menghapus semua suara";setTimeout(function(){rst=false;$("btnReset").textContent="Reset semua suara";},4000);return;}votes={};save();rst=false;$("btnReset").textContent="Reset semua suara";renderAdmin();};
+  $("c1").onclick=function(){pick(1)};
+  $("c2").onclick=function(){pick(2)};
+  $("btnConfirm").onclick=function(){
+    if(!picked)return;
+    $("chosenPhoto").innerHTML=avatar(picked);$("chosenName").textContent=cands[picked].name;show("s-check");};
+  $("btnBack").onclick=function(){show("s-vote");};
+  $("btnYes").onclick=function(){
+    voted=true;recordVote();show("s-vote");
+    $("c1").disabled=true;$("c2").disabled=true;
+    $("btnConfirm").classList.add("hide");$("done").classList.remove("hide");};
+  $("btnFinish").onclick=function(){reset();currentCode=null;show("s-start");};
+})();
+</script>
+</body>
+</html>
