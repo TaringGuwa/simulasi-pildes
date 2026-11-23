@@ -40,6 +40,7 @@ button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 .row{display:grid;gap:10px}
 .ok{background:color-mix(in srgb,var(--green) 18%,var(--card));border:2px solid var(--green);border-radius:12px;padding:16px;font-weight:700;text-align:center;margin:6px 0 4px}
 .hide{display:none!important}
+#qrFull:not(.hide){display:flex}
 input{font:inherit;padding:12px;border:2px solid var(--ink);border-radius:10px;background:var(--card);color:var(--ink);width:100%}
 .trow{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)}
 .qrc{display:flex;flex-wrap:wrap;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
@@ -100,14 +101,15 @@ input{font:inherit;padding:12px;border:2px solid var(--ink);border-radius:10px;b
       <button id="btnBack">Kembali</button>
     </div>
   </section>
-<section id="s-admin">
+<div id="qrFull" class="hide" style="position:fixed;inset:0;z-index:50;background:#fff;color:#000;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px;text-align:center"><div id="qrBig"></div><code id="qrBigCode" style="word-break:break-all"></code><small>Ketuk di mana saja untuk menutup. Naikkan kecerahan layar ke maksimal.</small></div>
+  <section id="s-admin">
     <h2>Panel panitia</h2>
     <div id="pinBox"><p>Masukkan PIN panitia.</p><input id="pin" type="password" inputmode="numeric" placeholder="PIN"><button class="big" id="btnPin" style="margin-top:10px;width:100%">Buka</button><p id="pinMsg" style="margin-top:10px;color:var(--red)"></p></div>
     <div id="adminBox" class="hide">
       <p>Hasil suara berdasarkan QR code yang sudah dipakai.</p>
       <div id="tally"></div>
       <h2 style="margin-top:24px">QR code pemilih</h2>
-      <p>Cetak atau screenshot QR ini. Tiap QR hanya bisa dipakai satu kali.</p>
+      <p>Ketuk sebuah QR untuk memperbesarnya di layar penuh, lalu scan dari perangkat lain. Tiap QR hanya bisa dipakai satu kali.</p>
       <div id="qrList"></div>
       <button id="btnReset" style="margin-top:16px;width:100%">Reset semua suara</button>
     </div>
@@ -148,7 +150,7 @@ input{font:inherit;padding:12px;border:2px solid var(--ink);border-radius:10px;b
     var h="";
     CODES.forEach(function(c,i){h+='<div class="qrc"><div id="qr'+i+'"></div><div><b>Pemilih '+(i+1)+'</b><br><small>'+(votes[c]?"Sudah dipakai":"Belum dipakai")+'</small><br><code>'+c+'</code></div></div>';});
     $("qrList").innerHTML=h;
-    if(window.QRCode)CODES.forEach(function(c,i){new QRCode($("qr"+i),{text:c,width:180,height:180,correctLevel:QRCode.CorrectLevel.M});});
+    if(window.QRCode)CODES.forEach(function(c,i){var el=$("qr"+i);new QRCode(el,{text:c,width:180,height:180,correctLevel:QRCode.CorrectLevel.L});el.style.cursor="pointer";el.title="Ketuk untuk perbesar";el.onclick=function(){showBig(c);};});
   }
 
   function stopCam(){cancelAnimationFrame(raf);if(stream){stream.getTracks().forEach(function(t){t.stop()});stream=null;}}
@@ -186,6 +188,8 @@ input{font:inherit;padding:12px;border:2px solid var(--ink);border-radius:10px;b
   $("btnAdmin").onclick=function(){$("pin").value="";$("pinMsg").textContent="";$("pinBox").classList.remove("hide");$("adminBox").classList.add("hide");show("s-admin");};
   $("btnPin").onclick=function(){if($("pin").value===PIN){$("pinBox").classList.add("hide");$("adminBox").classList.remove("hide");renderAdmin();}else{$("pinMsg").textContent="PIN salah.";}};
   $("btnAdminBack").onclick=function(){show("s-start");};
+  function showBig(c){var b=$("qrBig");b.innerHTML="";var z=Math.min(window.innerWidth-60,440);new QRCode(b,{text:c,width:z,height:z,correctLevel:QRCode.CorrectLevel.L});$("qrBigCode").textContent=c;$("qrFull").classList.remove("hide");}
+  $("qrFull").onclick=function(){$("qrFull").classList.add("hide");};
   var rst=false;
   var photoImg=null,photoUrl=null;
   function showPhoto(on){
@@ -206,19 +210,20 @@ input{font:inherit;padding:12px;border:2px solid var(--ink);border-radius:10px;b
     img.src=photoUrl;this.value="";
   };
   function decodePhoto(img){
-    var r=null,sizes=[2000,1200,800,500,350];
+    var r=null,sizes=[2000,1400,1000,700,500,350,250];
     for(var k=0;k<sizes.length&&!r;k++){
       var sc=Math.min(1,sizes[k]/Math.max(img.width,img.height)),w=Math.round(img.width*sc),h=Math.round(img.height*sc);
       var cv=document.createElement("canvas");cv.width=w;cv.height=h;
       var cx=cv.getContext("2d",{willReadFrequently:true});cx.drawImage(img,0,0,w,h);
       r=jsQR(cx.getImageData(0,0,w,h).data,w,h);
+      if(!r&&sizes[k]<=1000&&"filter" in cx){cx.clearRect(0,0,w,h);cx.filter="blur(1px)";cx.drawImage(img,0,0,w,h);cx.filter="none";r=jsQR(cx.getImageData(0,0,w,h).data,w,h);}
     }
     return r&&r.data?r.data:null;
   }
   $("btnScanNow").onclick=function(){
     if(!photoImg)return;
     $("camMsg").style.color="";$("camMsg").textContent="Memindai foto…";
-    function done(d){if(d){handleCode(d.trim());}else{bad("QR tidak terbaca di foto ini. Ambil ulang dengan QR lebih dekat dan lebih terang.");}}
+    function done(d){if(d){handleCode(d.trim());}else{bad("QR tidak terbaca di foto ini ("+photoImg.width+"×"+photoImg.height+"). Foto ulang: QR memenuhi sebagian foto, layar paling terang, jangan miring.");}}
     function viaJs(){if(!window.jsQR){bad("Pembaca QR gagal dimuat. Periksa koneksi internet lalu muat ulang halaman.");return;}done(decodePhoto(photoImg));}
     if(window.BarcodeDetector){
       try{new BarcodeDetector({formats:["qr_code"]}).detect(photoImg).then(function(res){if(res&&res.length&&res[0].rawValue)done(res[0].rawValue);else viaJs();}).catch(viaJs);}catch(e){viaJs();}
